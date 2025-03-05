@@ -1,32 +1,28 @@
-# Build Stage
-FROM node:18 AS build
+# Use the official Node.js 18 image as the base
+FROM node:18-alpine AS builder
 
+# Set the working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package.json and package-lock.json before running npm install
 COPY package.json package-lock.json ./
-RUN npm ci  # Faster and more reliable than npm install
 
-# Copy the rest of the application files
+# Install dependencies using npm 9
+RUN npm install -g npm@9 && npm ci
+
+# Copy the entire project to the container
 COPY . .
 
 # Build the React app
 RUN npm run build
 
-# Debugging: Check if the build directory exists
-RUN ls -la /app/build || echo "Build directory not found!"
-
-# Production Stage
+# Use a lightweight Nginx image for serving the built React app
 FROM nginx:alpine
 
+# Copy the built app from the builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Ensure the 'build' directory exists before copying
-RUN mkdir -p /usr/share/nginx/html
-
-# Copy built React app to Nginx's serving directory
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Expose port 80 for web traffic
+# Expose port 80
 EXPOSE 80
 
 # Start Nginx
