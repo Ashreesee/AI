@@ -1,25 +1,29 @@
-# Use an official Node.js runtime as a parent image
+# Build Stage
 FROM node:18 AS build
 
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci  # Faster and more reliable than `npm install`
 
 # Copy the rest of the application files
 COPY . .
 
-# Ensure the build directory is created
-RUN npm run build && ls -la build  # Debugging: List contents of 'build' folder
+# Build the React app
+RUN npm run build
 
-# Use Nginx to serve the built app
+# Production Stage
 FROM nginx:alpine
 
-# Ensure the 'build' directory exists before copying
-RUN mkdir -p /usr/share/nginx/html
+# Remove default Nginx static files
+RUN rm -rf /usr/share/nginx/html/*
 
+# Copy built React app to Nginx's serving directory
 COPY --from=build /app/build /usr/share/nginx/html
 
+# Expose port 80 for web traffic
 EXPOSE 80
+
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
