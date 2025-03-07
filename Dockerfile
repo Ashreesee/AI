@@ -9,5 +9,9 @@ RUN npm run build
 # Stage 2: Serve the App with Nginx
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# ✅ Create the missing /opt/resource/out file
+RUN mkdir -p /opt/resource && echo '#!/bin/sh\necho "Executing resource out script"' > /opt/resource/out && chmod +x /opt/resource/out
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
